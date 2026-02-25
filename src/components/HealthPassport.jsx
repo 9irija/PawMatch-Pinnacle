@@ -452,6 +452,25 @@ function OverviewSection({ hp, isHdb, onEdit, onPatch, showToast }) {
     reminders.push({ type: 'blue', text: `${activeMeds.length} active medication${activeMeds.length > 1 ? 's' : ''}` });
   }
 
+  // Heartworm prevention reminder (dogs only)
+  const isdog = hp.petSpecies !== 'cat' && hp.petSpecies !== 'rabbit';
+  if (isdog) {
+    const heartwormActive = (hp.medications ?? []).some(
+      m => m.active && /heartworm|heartgard|simparica|milbemax|interceptor/i.test(m.name ?? '')
+    );
+    if (!heartwormActive) {
+      reminders.push({ type: 'amber', text: 'Log heartworm prevention — monthly treatment recommended in SG' });
+    }
+  }
+
+  // Tick & flea prevention reminder
+  const fleaActive = (hp.medications ?? []).some(
+    m => m.active && /flea|tick|nexgard|bravecto|frontline|seresto|revolution|advantix/i.test(m.name ?? '')
+  );
+  if (!fleaActive) {
+    reminders.push({ type: 'amber', text: 'Log tick & flea prevention — year-round risk in Singapore' });
+  }
+
   // Species emoji
   const speciesEmoji = hp.petSpecies === 'cat' ? '🐱' : hp.petSpecies === 'rabbit' ? '🐰' : '🐶';
 

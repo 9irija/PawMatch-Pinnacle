@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { WEEKS, GUIDES } from '../data/onboardingData.js';
+import { WEEKS, GUIDES, CLIMATE_GUIDES } from '../data/onboardingData.js';
 
 const TOTAL_TASKS = WEEKS.flatMap(w => w.tasks).length;
 
@@ -210,7 +210,7 @@ function GuideAccordion({ guide, expanded, onToggle }) {
       case 'legal':
         return <GuideLegal requirements={guide.requirements} fineCallout={guide.fineCallout} />;
       default:
-        return null;
+        return guide.sections ? <GuideSections sections={guide.sections} /> : null;
     }
   };
 
@@ -334,6 +334,10 @@ export default function OwnerOnboarding({ onClose }) {
   const pct        = Math.round((doneCount / TOTAL_TASKS) * 100);
   const currentWeek = WEEKS[activeWeek - 1];
 
+  // Seasonal alert logic
+  const currentMonth = new Date().getMonth() + 1; // 1–12
+  const isWetSeason  = [10, 11, 12, 1, 4, 5].includes(currentMonth);
+
   return (
     <div
       className="fixed inset-0 bg-[#FFF8F0] flex flex-col"
@@ -405,6 +409,24 @@ export default function OwnerOnboarding({ onClose }) {
         ) : (
           <div className="px-4 pt-4 pb-24">
 
+            {/* Seasonal alert banners */}
+            <div className="flex flex-col gap-2 mb-4">
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2.5">
+                <span className="text-base flex-shrink-0">☀️</span>
+                <p className="text-xs font-semibold text-amber-800 leading-snug">
+                  <span className="font-extrabold">Walk before 9am or after 7pm</span> — Singapore pavement reaches 60°C at midday, causing paw pad burns.
+                </p>
+              </div>
+              {isWetSeason && (
+                <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-2xl px-3 py-2.5">
+                  <span className="text-base flex-shrink-0">🌧️</span>
+                  <p className="text-xs font-semibold text-blue-800 leading-snug">
+                    <span className="font-extrabold">Wet season active</span> — dry paws thoroughly after walks and avoid flooded puddles (Leptospirosis risk).
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Week summary card */}
             <WeekSummaryCard week={currentWeek} completedTasks={completedTasks} />
 
@@ -429,6 +451,23 @@ export default function OwnerOnboarding({ onClose }) {
               </p>
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4">
                 {GUIDES.map(guide => (
+                  <GuideAccordion
+                    key={guide.id}
+                    guide={guide}
+                    expanded={expandedGuide === guide.id}
+                    onToggle={() => setExpandedGuide(prev => prev === guide.id ? null : guide.id)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* ── Climate & Wellness ──────────────────────────────────────── */}
+            <div className="mb-4">
+              <p className="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-3 px-1">
+                🌡️ Climate &amp; Wellness
+              </p>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4">
+                {CLIMATE_GUIDES.map(guide => (
                   <GuideAccordion
                     key={guide.id}
                     guide={guide}
