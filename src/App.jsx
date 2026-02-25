@@ -13,6 +13,8 @@ import BreedGuide from './components/BreedGuide.jsx';
 import MatchModal from './components/MatchModal.jsx';
 import OwnerOnboarding from './components/OwnerOnboarding.jsx';
 import Community from './components/Community.jsx';
+import PetMap from './components/PetMap.jsx';
+import HealthPassport from './components/HealthPassport.jsx';
 import animalsData from './data/animalsData.js';
 import { sortAnimalsByScore, computeMatchScore } from './utils/matchingAlgorithm.js';
 
@@ -33,7 +35,7 @@ function cacheSave(uid, key, value) {
 }
 
 function cacheClear(uid) {
-  ['profile', 'liked', 'passed'].forEach(k =>
+  ['profile', 'liked', 'passed', 'health'].forEach(k =>
     localStorage.removeItem(`pawmatch_${uid}_${k}`)
   );
 }
@@ -49,6 +51,7 @@ async function loadUserData(uid) {
     passedIds:           data.passedIds           ?? [],
     onboardingProgress:  data.onboardingProgress  ?? { completedTasks: [] },
     joinedCommunities:   data.joinedCommunities   ?? [],
+    healthPassport:      data.healthPassport       ?? null,
   };
 }
 
@@ -70,6 +73,10 @@ async function clearUserData(uid) {
     { profile: deleteField(), likedAnimals: [], passedIds: [] },
     { merge: true }
   );
+}
+
+async function saveHealthPassport(uid, hp) {
+  await setDoc(doc(db, 'users', uid), { healthPassport: hp }, { merge: true });
 }
 
 // ── Species filter config ────────────────────────────────────────────────────
@@ -94,6 +101,7 @@ export default function App() {
   const [showOnboarding,     setShowOnboarding]     = useState(false);
   const [onboardingProgress, setOnboardingProgress] = useState({ completedTasks: [] });
   const [joinedCommunities,  setJoinedCommunities]  = useState([]);
+  const [healthPassport,     setHealthPassport]     = useState(null);
 
   // ── Load user data from Firestore on login ───────────────────────────────
   useEffect(() => {
@@ -101,6 +109,7 @@ export default function App() {
       setUserProfile(null);
       setLikedAnimals([]);
       setPassedIds([]);
+      setHealthPassport(null);
       setActiveTab('discover');
       setSpeciesFilter('all');
       return;
@@ -112,18 +121,21 @@ export default function App() {
     setUserProfile(cacheLoad(uid, 'profile', null));
     setLikedAnimals(cacheLoad(uid, 'liked', []));
     setPassedIds(cacheLoad(uid, 'passed', []));
+    setHealthPassport(cacheLoad(uid, 'health', null));
 
     setDataLoading(true);
     loadUserData(uid)
-      .then(({ profile, likedAnimals, passedIds, onboardingProgress, joinedCommunities }) => {
+      .then(({ profile, likedAnimals, passedIds, onboardingProgress, joinedCommunities, healthPassport }) => {
         setUserProfile(profile);
         setLikedAnimals(likedAnimals);
         setPassedIds(passedIds);
         setOnboardingProgress(onboardingProgress);
         setJoinedCommunities(joinedCommunities);
+        setHealthPassport(healthPassport);
         cacheSave(uid, 'profile', profile);
         cacheSave(uid, 'liked',   likedAnimals);
         cacheSave(uid, 'passed',  passedIds);
+        cacheSave(uid, 'health',  healthPassport);
       })
       .catch(console.error)
       .finally(() => setDataLoading(false));
@@ -155,6 +167,13 @@ export default function App() {
     if (!currentUser || dataLoading) return;
     setDoc(doc(db, 'users', currentUser.uid), { joinedCommunities }, { merge: true }).catch(console.error);
   }, [joinedCommunities]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!currentUser || dataLoading) return;
+    const uid = currentUser.uid;
+    saveHealthPassport(uid, healthPassport).catch(console.error);
+    cacheSave(uid, 'health', healthPassport);
+  }, [healthPassport]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filtered animals ─────────────────────────────────────────────────────
   const sortedAnimals    = userProfile ? sortAnimalsByScore(animalsData, userProfile) : animalsData;
@@ -327,6 +346,18 @@ export default function App() {
               <p className="text-xs text-gray-400 font-semibold">Connect with Singapore dog owners</p>
             </div>
           )}
+          {activeTab === 'map' && (
+            <div>
+              <h2 className="font-display text-lg font-bold text-gray-900">Nearby Places</h2>
+              <p className="text-xs text-gray-400 font-semibold">Pet-friendly spots in Singapore</p>
+            </div>
+          )}
+          {activeTab === 'health' && (
+            <div>
+              <h2 className="font-display text-lg font-bold text-gray-900">Health Passport</h2>
+              <p className="text-xs text-gray-400 font-semibold">Track vaccinations, vet visits & more</p>
+            </div>
+          )}
         </div>
 
         {/* ── Main content ── */}
@@ -354,11 +385,19 @@ export default function App() {
             />
           )}
           {activeTab === 'guide' && <BreedGuide />}
+          {activeTab === 'map' && <PetMap />}
           {activeTab === 'community' && (
             <Community
               userProfile={userProfile}
               joinedCommunities={joinedCommunities}
               onJoinedChange={setJoinedCommunities}
+            />
+          )}
+          {activeTab === 'health' && (
+            <HealthPassport
+              userProfile={userProfile}
+              healthPassport={healthPassport}
+              onUpdate={setHealthPassport}
             />
           )}
         </main>
