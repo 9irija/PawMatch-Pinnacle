@@ -26,6 +26,44 @@ const SG_REQUIREMENTS = [
 
 const MED_FREQUENCIES = ['daily', 'twice daily', 'weekly', 'monthly', 'as needed'];
 
+// ── Demo Passport ─────────────────────────────────────────────────────────────
+const DEMO_PASSPORT = {
+  petName: 'Kopi',
+  petSpecies: 'dog',
+  petBreed: 'Singapore Special (Medium)',
+  dateOfBirth: '2021-06-15',
+  gender: 'Female',
+  colour: 'Tan & white',
+  avsLicenceNumber: 'D-204871',
+  microchipId: '702100002843017',
+  sterilised: true,
+  annualBoosterUpToDate: true,
+  avsLicenceRenewalDate: '2026-06-14',
+  vaccinations: [
+    { id: 'v1', vaccine: 'DHPP (5-in-1)', date: '2025-06-10', nextDueDate: '2026-06-10', clinic: 'Jippo Vet (Punggol)', notes: 'No adverse reactions' },
+    { id: 'v2', vaccine: 'Rabies',        date: '2025-06-10', nextDueDate: '2026-06-10', clinic: 'Jippo Vet (Punggol)', notes: '' },
+    { id: 'v3', vaccine: 'Bordetella (Kennel Cough)', date: '2024-11-20', nextDueDate: '2025-11-20', clinic: 'Mount Pleasant (Whitley)', notes: 'Before boarding' },
+  ],
+  vetVisits: [
+    { id: 'vv1', date: '2025-06-10', clinic: 'Jippo Vet (Punggol)', vetName: 'Dr. Chen', diagnosis: 'Annual wellness check — healthy', treatment: 'DHPP + Rabies booster given', notes: 'Weight 8.4 kg. Teeth good. Told to monitor left ear.' },
+    { id: 'vv2', date: '2024-11-20', clinic: 'Mount Pleasant (Whitley)', vetName: 'Dr. Tan', diagnosis: 'Mild ear infection (left)', treatment: 'Ear drops 10 days', notes: 'Bordetella given. Recheck in 2 weeks — all clear.' },
+  ],
+  medications: [
+    { id: 'm1', name: 'Simparica Trio (heartworm + flea + tick)', dosage: '1 chew', frequency: 'monthly', startDate: '2024-01-01', endDate: '', active: true },
+    { id: 'm2', name: 'Ear drops (Otomax)', dosage: '4 drops per ear', frequency: 'twice daily', startDate: '2024-11-20', endDate: '2024-11-30', active: false },
+  ],
+  weights: [
+    { id: 'w1', date: '2024-06-10', kg: 7.8 },
+    { id: 'w2', date: '2024-11-20', kg: 8.1 },
+    { id: 'w3', date: '2025-03-05', kg: 8.3 },
+    { id: 'w4', date: '2025-06-10', kg: 8.4 },
+    { id: 'w5', date: '2025-10-14', kg: 8.6 },
+  ],
+  symptoms: [
+    { id: 's1', date: '2024-11-18', symptoms: ['Scratching', 'Discharge from eyes/nose'], severity: 'mild', notes: 'Shaking head frequently. Booked vet for 20 Nov.' },
+  ],
+};
+
 const SECTIONS = [
   { id: 'overview',  label: 'Overview'  },
   { id: 'vaccines',  label: 'Vaccines'  },
@@ -993,7 +1031,8 @@ export default function HealthPassport({ userProfile, healthPassport, onUpdate }
   const [activeSheet, setActiveSheet] = useState(null); // null | 'setup' | 'vaccine' | 'visit' | 'medication' | 'symptoms'
   const [toast, setToast] = useState('');
 
-  const hp = healthPassport;
+  const isDemo = !healthPassport;
+  const hp = healthPassport ?? DEMO_PASSPORT;
   const isHdb = userProfile?.livingSpace === 'hdb';
 
   const showToast = (msg) => setToast(msg);
@@ -1018,30 +1057,25 @@ export default function HealthPassport({ userProfile, healthPassport, onUpdate }
     patchHP({ [key]: (hp?.[key] ?? []).filter(x => x.id !== id) });
   };
 
-  // If no passport created yet
-  if (!hp?.petName) {
-    return (
-      <div className="flex-1 overflow-y-auto">
-        <SetupPromptCard onSetup={() => setActiveSheet('setup')} />
-        {activeSheet === 'setup' && (
-          <SetupSheet
-            onClose={() => setActiveSheet(null)}
-            onSave={(data) => onUpdate(data)}
-            initialData={null}
-            showToast={showToast}
-          />
-        )}
-        {toast && (
-          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-xl animate-fade-scale-in">
-            {toast}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="flex-1 overflow-y-auto">
+      {/* Demo banner — shown when no real passport exists */}
+      {isDemo && (
+        <div className="mx-5 mt-1 mb-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <span className="text-lg flex-shrink-0">👋</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-amber-800">This is a sample passport</p>
+            <p className="text-xs text-amber-700 mt-0.5">Create your own to track your dog's real health records.</p>
+          </div>
+          <button
+            onClick={() => setActiveSheet('setup')}
+            className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-[#FF6B35] text-white text-xs font-bold active:opacity-80"
+          >
+            Create
+          </button>
+        </div>
+      )}
+
       {/* Section chips */}
       <div className="px-5 pb-3 pt-1">
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -1116,8 +1150,8 @@ export default function HealthPassport({ userProfile, healthPassport, onUpdate }
       {activeSheet === 'setup' && (
         <SetupSheet
           onClose={() => setActiveSheet(null)}
-          onSave={(data) => onUpdate(prev => ({ ...(prev ?? {}), ...data }))}
-          initialData={hp}
+          onSave={(data) => isDemo ? onUpdate(data) : onUpdate(prev => ({ ...(prev ?? {}), ...data }))}
+          initialData={isDemo ? null : hp}
           showToast={showToast}
         />
       )}

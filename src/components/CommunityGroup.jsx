@@ -6,9 +6,12 @@ import {
 import { db } from '../firebase.js';
 import NewPostModal from './NewPostModal.jsx';
 import PostRepliesSheet from './PostRepliesSheet.jsx';
+import { COMMUNITY_POSTS } from '../data/communityData.js';
 
 // ── Relative time helper ──────────────────────────────────────────────────────
 function relativeTime(ts) {
+  // Dummy posts pass a plain string (e.g. "2h ago") — return as-is
+  if (typeof ts === 'string') return ts;
   if (!ts?.toMillis) return '';
   const secs = Math.floor((Date.now() - ts.toMillis()) / 1000);
   if (secs < 60)   return 'just now';
@@ -73,7 +76,7 @@ function PostCard({ post, communityId, currentUser, onReply }) {
               {badge.label}
             </span>
           </div>
-          <span className="text-[10px] text-gray-400">{relativeTime(post.timestamp)}</span>
+          <span className="text-[10px] text-gray-400">{relativeTime(post.timestamp ?? post.dummyTimeAgo)}</span>
         </div>
       </div>
 
@@ -128,7 +131,7 @@ export default function CommunityGroup({ community, currentUser, isJoined, onJoi
     return () => clearTimeout(t);
   }, []);
 
-  // Real-time posts subscription
+  // Real-time posts subscription (falls back to dummy posts when Firestore returns empty)
   useEffect(() => {
     const q = query(
       collection(db, 'communities', community.id, 'posts'),
@@ -136,10 +139,17 @@ export default function CommunityGroup({ community, currentUser, isJoined, onJoi
       limit(50)
     );
     const unsub = onSnapshot(q, snap => {
-      setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const firestorePosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (firestorePosts.length > 0) {
+        setPosts(firestorePosts);
+      } else {
+        setPosts(COMMUNITY_POSTS[community.id] ?? []);
+      }
       setLoading(false);
     }, err => {
       console.error('Community posts error:', err);
+      // On error, still show dummy posts so the UI isn't empty
+      setPosts(COMMUNITY_POSTS[community.id] ?? []);
       setLoading(false);
     });
     return unsub;
