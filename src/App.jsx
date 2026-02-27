@@ -79,12 +79,6 @@ async function saveHealthPassport(uid, hp) {
   await setDoc(doc(db, 'users', uid), { healthPassport: hp }, { merge: true });
 }
 
-// ── Species filter config ────────────────────────────────────────────────────
-const SPECIES_FILTERS = [
-  { value: 'all', label: 'All',  emoji: '🐾' },
-  { value: 'dog', label: 'Dogs', emoji: '🐶' },
-  { value: 'cat', label: 'Cats', emoji: '🐱' },
-];
 
 // ── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
@@ -96,7 +90,6 @@ export default function App() {
   const [passedIds,     setPassedIds]     = useState([]);
   const [activeTab,          setActiveTab]          = useState('discover');
   const [matchModal,         setMatchModal]         = useState(null);
-  const [speciesFilter,      setSpeciesFilter]      = useState('all');
   const [dataLoading,        setDataLoading]        = useState(false);
   const [showOnboarding,     setShowOnboarding]     = useState(false);
   const [onboardingProgress, setOnboardingProgress] = useState({ completedTasks: [] });
@@ -111,7 +104,6 @@ export default function App() {
       setPassedIds([]);
       setHealthPassport(null);
       setActiveTab('discover');
-      setSpeciesFilter('all');
       return;
     }
 
@@ -180,15 +172,10 @@ export default function App() {
   const swipedIds        = new Set([...likedAnimals.map(a => a.id), ...passedIds]);
   const availableAnimals = sortedAnimals.filter(a => !swipedIds.has(a.id));
 
-  const hdbFiltered =
+  const filteredAnimals =
     userProfile?.livingSpace === 'hdb'
       ? availableAnimals.filter(a => a.hdbApproved)
       : availableAnimals;
-
-  const filteredAnimals =
-    speciesFilter === 'all'
-      ? hdbFiltered
-      : hdbFiltered.filter(a => a.species === speciesFilter);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleOnboardingComplete = (profile) => {
@@ -221,7 +208,6 @@ export default function App() {
     setPassedIds([]);
     setMatchModal(null);
     setActiveTab('discover');
-    setSpeciesFilter('all');
   };
 
   // ── Avatar letter ─────────────────────────────────────────────────────────
@@ -294,30 +280,14 @@ export default function App() {
           </div>
         </header>
 
-        {/* ── Tab title + species filter ── */}
+        {/* ── Tab title ── */}
         <div className="flex-shrink-0 px-5 pt-3 pb-2">
           {activeTab === 'discover' && (
             <div>
               <h2 className="font-display text-lg font-bold text-gray-900">Find Your Match</h2>
-              <p className="text-xs text-gray-400 font-semibold mb-3">
+              <p className="text-xs text-gray-400 font-semibold">
                 Sorted by compatibility · {userProfile.mbti} type
               </p>
-              <div className="flex gap-1.5 bg-gray-100 p-1 rounded-2xl">
-                {SPECIES_FILTERS.map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => setSpeciesFilter(f.value)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
-                      speciesFilter === f.value
-                        ? 'bg-white text-[#FF6B35] shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <span>{f.emoji}</span>
-                    <span>{f.label}</span>
-                  </button>
-                ))}
-              </div>
             </div>
           )}
           {activeTab === 'matches' && (
@@ -364,7 +334,6 @@ export default function App() {
         <main className="flex-1 overflow-hidden flex flex-col">
           {activeTab === 'discover' && (
             <CardStack
-              key={speciesFilter}
               animals={filteredAnimals}
               onSwipeRight={handleSwipeRight}
               onSwipeLeft={handleSwipeLeft}
