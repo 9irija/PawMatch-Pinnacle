@@ -268,7 +268,7 @@ export default function App() {
   // ── Main app ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#FFF8F0] flex justify-center">
-      <div className="w-full max-w-[430px] min-h-screen flex flex-col bg-[#FFF8F0] relative">
+      <div className="w-full max-w-[430px] h-[100dvh] flex flex-col bg-[#FFF8F0] relative overflow-hidden">
 
         {/* ── Header ── */}
         <header className="flex-shrink-0 bg-white/80 backdrop-blur border-b border-gray-100 px-5 py-3 flex items-center justify-between shadow-sm">
