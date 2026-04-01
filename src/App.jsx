@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, deleteField } from 'firebase/firestore';
 import { db } from './firebase.js';
 import { useAuth } from './contexts/AuthContext.jsx';
-import LoginPage from './components/auth/LoginPage.jsx';
-import SignupPage from './components/auth/SignupPage.jsx';
-import Onboarding from './components/Onboarding.jsx';
 import CardStack from './components/CardStack.jsx';
 import MyMatches from './components/MyMatches.jsx';
 import Profile from './components/Profile.jsx';
@@ -17,6 +14,15 @@ import PetMap from './components/PetMap.jsx';
 import HealthPassport from './components/HealthPassport.jsx';
 import animalsData from './data/animalsData.js';
 import { sortAnimalsByScore, computeMatchScore } from './utils/matchingAlgorithm.js';
+
+const GUEST_UID = 'guest';
+const DEFAULT_PROFILE = {
+  mbti: 'ENFP',
+  livingSpace: 'condo',
+  activityLevel: 'moderately_active',
+  timeAvailable: '3_4_hrs',
+  experience: 'first_timer',
+};
 
 // ── Local cache helpers (scoped per user) ────────────────────────────────────
 function cacheLoad(uid, key, fallback) {
@@ -93,10 +99,10 @@ async function saveHealthPassport(uid, hp) {
 
 // ── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { currentUser, authLoading } = useAuth();
+  const { currentUser } = useAuth();
+  const appUser = currentUser ?? { uid: GUEST_UID, displayName: 'Guest', email: 'guest@pawmatch.local' };
 
-  const [authView,      setAuthView]      = useState('login'); // 'login' | 'signup'
-  const [userProfile,   setUserProfile]   = useState(null);
+  const [userProfile,   setUserProfile]   = useState(DEFAULT_PROFILE);
   const [likedAnimals,  setLikedAnimals]  = useState([]);
   const [passedIds,     setPassedIds]     = useState([]);
   const [activeTab,          setActiveTab]          = useState('discover');
@@ -111,12 +117,13 @@ export default function App() {
   // ── Load user data from Firestore on login ───────────────────────────────
   useEffect(() => {
     if (!currentUser) {
-      setUserProfile(null);
-      setLikedAnimals([]);
-      setPassedIds([]);
-      setHealthPassport(null);
-      setPostAdoptionData(null);
+      setUserProfile(cacheLoad(GUEST_UID, 'profile', DEFAULT_PROFILE));
+      setLikedAnimals(cacheLoad(GUEST_UID, 'liked', []));
+      setPassedIds(cacheLoad(GUEST_UID, 'passed', []));
+      setHealthPassport(cacheLoad(GUEST_UID, 'health', null));
+      setPostAdoptionData(cacheLoad(GUEST_UID, 'post_adoption', null));
       setActiveTab('discover');
+      setDataLoading(false);
       return;
     }
 
@@ -151,23 +158,23 @@ export default function App() {
 
   // ── Sync state → Firestore + cache (skip during initial load) ───────────
   useEffect(() => {
-    if (!currentUser || dataLoading) return;
-    const uid = currentUser.uid;
-    saveProfile(uid, userProfile).catch(console.error);
+    if (dataLoading) return;
+    const uid = currentUser?.uid ?? GUEST_UID;
+    if (currentUser) saveProfile(uid, userProfile).catch(console.error);
     cacheSave(uid, 'profile', userProfile);
   }, [userProfile]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!currentUser || dataLoading) return;
-    const uid = currentUser.uid;
-    saveLiked(uid, likedAnimals).catch(console.error);
+    if (dataLoading) return;
+    const uid = currentUser?.uid ?? GUEST_UID;
+    if (currentUser) saveLiked(uid, likedAnimals).catch(console.error);
     cacheSave(uid, 'liked', likedAnimals);
   }, [likedAnimals]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!currentUser || dataLoading) return;
-    const uid = currentUser.uid;
-    savePassed(uid, passedIds).catch(console.error);
+    if (dataLoading) return;
+    const uid = currentUser?.uid ?? GUEST_UID;
+    if (currentUser) savePassed(uid, passedIds).catch(console.error);
     cacheSave(uid, 'passed', passedIds);
   }, [passedIds]);  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -177,16 +184,16 @@ export default function App() {
   }, [joinedCommunities]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!currentUser || dataLoading) return;
-    const uid = currentUser.uid;
-    saveHealthPassport(uid, healthPassport).catch(console.error);
+    if (dataLoading) return;
+    const uid = currentUser?.uid ?? GUEST_UID;
+    if (currentUser) saveHealthPassport(uid, healthPassport).catch(console.error);
     cacheSave(uid, 'health', healthPassport);
   }, [healthPassport]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!currentUser || dataLoading) return;
-    const uid = currentUser.uid;
-    setDoc(doc(db, 'users', uid), { postAdoptionData }, { merge: true }).catch(console.error);
+    if (dataLoading) return;
+    const uid = currentUser?.uid ?? GUEST_UID;
+    if (currentUser) setDoc(doc(db, 'users', uid), { postAdoptionData }, { merge: true }).catch(console.error);
     cacheSave(uid, 'post_adoption', postAdoptionData);
   }, [postAdoptionData]);  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -201,12 +208,6 @@ export default function App() {
       : availableAnimals;
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  const handleOnboardingComplete = (profile) => {
-    setUserProfile(profile);
-    setLikedAnimals([]);
-    setPassedIds([]);
-  };
-
   const handleSwipeRight = (animal) => {
     const score = computeMatchScore(userProfile, animal);
     setLikedAnimals(prev => [...prev, { ...animal, score }]);
@@ -226,7 +227,7 @@ export default function App() {
         console.error('Failed to clear Firestore data:', err);
       }
     }
-    setUserProfile(null);
+    setUserProfile(DEFAULT_PROFILE);
     setLikedAnimals([]);
     setPassedIds([]);
     setMatchModal(null);
@@ -234,28 +235,9 @@ export default function App() {
   };
 
   // ── Avatar letter ─────────────────────────────────────────────────────────
-  const avatarLetter = currentUser?.displayName
-    ? currentUser.displayName[0].toUpperCase()
-    : currentUser?.email?.[0].toUpperCase() ?? '?';
-
-  // ── Auth loading splash ───────────────────────────────────────────────────
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
-        <div className="text-center">
-          <span className="text-5xl animate-bounce inline-block">🐾</span>
-          <p className="text-[#FF6B35] font-bold mt-3 font-display text-lg">PawMatch</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Auth gate ─────────────────────────────────────────────────────────────
-  if (!currentUser) {
-    return authView === 'login'
-      ? <LoginPage  onSwitchToSignup={() => setAuthView('signup')} />
-      : <SignupPage onSwitchToLogin={()  => setAuthView('login')}  />;
-  }
+  const avatarLetter = appUser?.displayName
+    ? appUser.displayName[0].toUpperCase()
+    : appUser?.email?.[0].toUpperCase() ?? '?';
 
   // ── Firestore data loading ────────────────────────────────────────────────
   if (dataLoading) {
@@ -267,11 +249,6 @@ export default function App() {
         </div>
       </div>
     );
-  }
-
-  // ── Onboarding ────────────────────────────────────────────────────────────
-  if (!userProfile) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
   // ── Main app ──────────────────────────────────────────────────────────────
@@ -323,7 +300,7 @@ export default function App() {
             <div>
               <h2 className="font-display text-lg font-bold text-gray-900">My Profile</h2>
               <p className="text-xs text-gray-400 font-semibold">
-                {currentUser.displayName || currentUser.email}
+                {appUser.displayName || appUser.email}
               </p>
             </div>
           )}

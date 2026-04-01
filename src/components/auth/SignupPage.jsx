@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
-export default function SignupPage({ onSwitchToLogin }) {
+export default function SignupPage() {
   const { signup, loginWithGoogle } = useAuth();
 
   const [displayName,     setDisplayName]     = useState('');
@@ -151,16 +151,6 @@ export default function SignupPage({ onSwitchToLogin }) {
           </button>
         </div>
 
-        {/* Switch to login */}
-        <p className="text-center text-sm text-gray-500 mt-5 font-semibold">
-          Already have an account?{' '}
-          <button
-            onClick={onSwitchToLogin}
-            className="text-[#FF6B35] font-bold hover:underline"
-          >
-            Log in
-          </button>
-        </p>
       </div>
     </div>
   );

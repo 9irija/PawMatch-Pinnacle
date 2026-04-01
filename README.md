@@ -22,10 +22,11 @@ Built with React + Vite, Firebase Auth + Firestore, and Tailwind CSS.
 
 ## Features
 
-### 1. Authentication
-- Email / password sign-up and login via Firebase Auth
+### 1. Authentication (Optional)
+- Supports Email/password sign-up and Google login via Firebase Auth
 - Persistent sessions across page reloads
 - Per-user scoped data in Firestore (`users/{uid}`)
+- Current local UX default: app opens directly to the main home experience in guest mode (no login gate)
 
 ---
 
@@ -288,7 +289,9 @@ npm install
 npm run dev
 ```
 
-Requires a `.env` file with Firebase config:
+By default, local startup goes directly into the app home screen (guest mode).
+
+Firebase `.env` config is still required for authenticated and Firestore-backed flows:
 ```
 VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
