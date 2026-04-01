@@ -233,6 +233,15 @@ Amber banner shown for HDB residents reminding them of the mandatory window mesh
 
 ---
 
+### 11. Layer 3 MVP — Post-Adoption Risk Signal
+- Lives in the **My Matches** tab as a top check-in module
+- Captures lightweight post-adoption check-ins (e.g. behaviour, adjustment, routine indicators)
+- Computes an early retention-risk signal to flag potentially fragile placements
+- Helps owners intervene earlier before a mismatch becomes a return risk
+- Persists check-in state with the rest of the user app data
+
+---
+
 ## Data Architecture
 
 ### Firestore Document (`users/{uid}`)
@@ -289,7 +298,11 @@ npm install
 npm run dev
 ```
 
-By default, local startup goes directly into the app home screen (guest mode).
+### Current local version behavior
+- App opens directly to the main home experience in **guest mode** (no login gate)
+- No onboarding is required to start swiping in local guest flow
+- To view Layer 3 UI, go to **My Matches** after liking at least one animal
+- Default dev URL is usually `http://localhost:5173`
 
 Firebase `.env` config is still required for authenticated and Firestore-backed flows:
 ```
