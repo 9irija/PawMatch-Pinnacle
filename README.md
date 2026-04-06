@@ -1,8 +1,46 @@
-# PawMatch 🐾
+# PawMatch Pinnacle 🐾
 
-A Singapore-specific pet adoption and owner companion app. PawMatch uses personality-based matching to help prospective owners find their ideal dog or cat, then supports them through adoption with health tracking, compliance checklists, climate guides, and community features.
+> **NTU Pinnacle Prize 2026 — Smart Cities & AI for Good**
+>
+> A Singapore-specific pet adoption platform that uses personality-based AI matching to connect prospective owners with shelter animals, then supports them through adoption with post-adoption risk monitoring, health tracking, compliance tools, and community features.
+>
+> **Live demo:** https://9irija.github.io/PawMatch-Pinnacle/
 
-Built with React + Vite, Firebase Auth + Firestore, and Tailwind CSS.
+Built with React 18 + Vite · Firebase Auth + Firestore · Tailwind CSS · Recharts · Leaflet
+
+---
+
+## The Problem
+
+Singapore's animal shelters face a circular crisis: animals are adopted, returned due to mismatch or owner burnout, and cycle back into the system — driving up stray numbers and shelter costs. Most platforms stop at the moment of adoption. PawMatch doesn't.
+
+## The Solution (3-Layer Architecture)
+
+| Layer | What it does | Prize theme |
+|---|---|---|
+| **Layer 1** — Personality Matching | MBTI + lifestyle quiz → ranked swipe deck | AI for Good |
+| **Layer 2** — Post-Adoption Support | Health passport, 30-day guide, compliance checklists | Smart Cities |
+| **Layer 3** — Retention Risk AI | Check-in signals → 0–100 risk score → contextual interventions | AI for Good + Smart Cities |
+
+The circular economy argument: **better matching → fewer returns → fewer strays → less shelter pressure → city spends less on stray management.**
+
+---
+
+## Live Demo — How to Test
+
+**URL:** https://9irija.github.io/PawMatch-Pinnacle/
+
+Works fully in guest mode — no account needed. All data saves to your browser's localStorage.
+
+### Walkthrough for judges / testers
+
+1. **Quiz** — Answer 8 questions (MBTI, lifestyle, housing, experience). Takes ~2 min. Drives all matching.
+2. **Discover** — Swipe right on 1–2 animals. Cards are ranked by your compatibility score.
+3. **My Pet** tab (🏠) — Confirm which animal you adopted. Log a check-in to see the AI risk score.
+4. **Profile** tab → scroll down to **City Impact Dashboard** — see Singapore-level retention data.
+5. **Health** tab — Explore the digital vet passport with vaccination reminders and compliance tracking.
+6. **Community** tab — Join Singapore-specific owner groups.
+7. **Map** tab — Browse pet-friendly spots in Singapore.
 
 ---
 
@@ -10,319 +48,217 @@ Built with React + Vite, Firebase Auth + Firestore, and Tailwind CSS.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite |
-| Styling | Tailwind CSS |
-| Auth & Database | Firebase (Auth + Firestore) |
+| Frontend | React 18, Vite 4 |
+| Styling | Tailwind CSS 3 |
+| Auth & Database | Firebase 12 (Auth + Firestore) — optional, graceful offline fallback |
 | Charts | Recharts |
-| Hosting | Vite build → static deploy |
+| Maps | Leaflet + react-leaflet |
+| Hosting | GitHub Pages (via gh-pages) |
 | State | React `useState` / `useEffect` |
-| Persistence | Firestore (source of truth) + `localStorage` (instant cache) |
+| Persistence | Firestore (source of truth) + `localStorage` (instant cache + offline guest mode) |
 
 ---
 
 ## Features
 
-### 1. Authentication (Optional)
-- Supports Email/password sign-up and Google login via Firebase Auth
-- Persistent sessions across page reloads
-- Per-user scoped data in Firestore (`users/{uid}`)
-- Current local UX default: app opens directly to the main home experience in guest mode (no login gate)
+---
+
+### 1. Personality Onboarding Quiz `[AI for Good]`
+
+Shown on first launch. Skipped automatically if a profile already exists in localStorage or Firestore.
+
+- **8 questions** — MBTI dimensions (E/I, S/N, T/F, J/P), activity level, living space, time available, pet experience
+- MBTI type computed from quiz answers and stored alongside lifestyle profile
+- **HDB note** on Q6 — explains breed filtering before they see any animals
+- Animated progress bar, tap-to-select option cards, slide transitions between questions
+- On completion → profile saved to Firestore + localStorage; quiz never re-shown unless "Retake Quiz" is pressed
+- Retake Quiz wipes swipe history, liked animals, and post-adoption data — full fresh start
 
 ---
 
-### 2. Personality-Based Onboarding Quiz
-- New users complete a short profile quiz before seeing any animals
-- Captures: MBTI personality type, living situation (HDB / condo / landed), lifestyle, activity level, and pet preferences
-- HDB users are automatically filtered to AVS-approved breeds only
-- Profile stored in Firestore and cached in localStorage
+### 2. Discover — AI-Ranked Swipe Deck `[AI for Good]`
+
+- Tinder-style card stack with touch and mouse drag gesture support
+- Animals sorted by **compatibility score (0–100)** — highest match shown first
+- **HDB filter** — non-approved breeds automatically hidden for HDB residents
+- Swipe right → liked (triggers Match Modal) · Swipe left → passed
+- Match Modal shows score breakdown and match reason bullets on every right-swipe
+
+#### Matching Algorithm (`src/utils/matchingAlgorithm.js`)
+
+| Signal | Max pts | How |
+|---|---|---|
+| MBTI compatibility | 50 | 12.5 per matching dimension (E/I, S/N, T/F, J/P) |
+| Energy level match | 25 | Graduated by difference between owner activity and animal energy |
+| Experience match | 15 | Lookup table: first-timer/beginner, experienced/experienced, etc. |
+| Senior/special-needs boost | +10 | Applied when base score > 60 and animal age ≥ 7 or has special needs |
 
 ---
 
-### 3. Discover — Tinder-Style Pet Matching
-- Swipe-card stack with touch + mouse drag gesture support
-- Animals sorted by **compatibility score** computed from MBTI match, energy level, living space, and lifestyle
-- **Species filter**: All · Dogs · Cats
-- **HDB filter**: automatically hides non-approved breeds for HDB residents
-- Swipe right → liked, swipe left → passed
-- Match modal on every right-swipe showing compatibility score breakdown
+### 3. My Matches
+
+- Grid of all right-swiped animals, sorted by match score (highest first)
+- Score badge colour: 🟢 ≥80 · 🟠 ≥60 · ⚫ <60
+- Days-in-shelter badge (amber)
+- Contact Shelter button → links to real Singapore shelter URLs (SPCA, Action for Singapore Dogs, Cat Welfare Society, etc.)
+- Tap any card → full animal detail modal
+- Empty state with prompt to the Discover tab
 
 ---
 
-### 4. My Matches
-- Grid of all liked animals sorted by match score (highest first)
-- Score badge on each card
-- Empty state with prompt to discover more animals
+### 4. My Pet — Adoption Journey Tracker `[AI for Good]` `[Smart Cities]`
 
----
-
-### 5. Breed Guide
-- Comprehensive guide to Singapore-relevant dog breeds
-- Each breed card shows: temperament, energy level, grooming needs, exercise requirements, suitability for HDB
-- **HDB Approved** / **Not HDB Approved** badges
-- Full detail modal with personality traits and care notes
-
----
-
-### 6. Community
-- Join and leave community groups
-- Create text posts within groups
-- Reply threads on each post
-- Groups include MBTI-themed spaces (e.g. INTJ Owners) and Singapore-specific groups (Singapore Specials, HDB Dog Owners)
-- Joined communities persist in Firestore
-
----
-
-### 7. Nearby Pet-Friendly Places (Map)
-- Curated list of pet-friendly spots in Singapore
-- Categories: dog runs, parks, cafés, vets, grooming, boarding
-- Map view with location markers
-- Singapore-specific data (West Coast Park, East Coast Park, MacRitchie, etc.)
-
----
-
-### 8. 30-Day New Owner Guide
-
-A full-screen guided checklist overlay accessible from the Profile tab. Persists progress in Firestore.
-
-#### Weekly Checklists (30+ tasks across 4 weeks)
-
-**Week 1 — Settling In**
-- Know the public leash law — **$200 fine** (legal badge, upfront in Week 1)
-- Register AVS dog licence (legal badge, costs: $15/yr sterilised · $90/yr unsterilised)
-- Verify microchip registration and ownership transfer
-- Buy the essentials (leash, collar, bowls, crate)
-- Introduce dog to HDB neighbours
-- Set up home base / safe zone
-- Establish toilet training spot
-- Dog-proof the flat (cables, toxic plants, balconies)
-- Set consistent feeding schedule
-
-**Week 2 — Health & Hygiene**
-- Schedule and attend first vet visit
-- Confirm and plan vaccination schedule
-- Start flea & tick prevention
-- Discuss heartworm prevention
-- Complete deworming protocol
-- Continue toilet training
-- Introduce bath and grooming routine
-
-**Week 3 — Training & Socialisation**
-- Begin basic obedience: sit, stay, come, leave it
-- Practice leash manners in HDB corridor
-- First outdoor walk (cool hours: before 9am / after 7pm)
-- Book professional grooming appointment
-- Join local dog owner community
-- Begin structured socialisation (people, sounds, surfaces)
-
-**Week 4 — Into Routine**
-- Establish consistent daily walk schedule
-- Continue advanced socialisation (dog parks, cafés)
-- Book group obedience class
-- Practice leash manners in public (void decks, hawker centres)
-- Master HDB common area etiquette (legal badge)
-- Review and consolidate toilet training
-- Schedule next vet visit, consider pet insurance
-
-#### Task Features
-- Tap any task to expand full detail
-- Checkbox to mark complete — syncs to Firestore in real time
-- **Legal badge** on legally required tasks
-- **Cost estimate** badge (SGD) on applicable tasks
-- Week summary card with live progress bar
-- Overall progress bar and percentage counter
-
-#### Special Guides (accordion, always accessible)
-
-| Guide | Contents |
-|---|---|
-| 🏥 First Vet Visit Guide | What to bring, what happens at the visit, core vaccination schedule (C5/Lepto/Rabies), estimated costs in SGD |
-| 🏠 Project ADORE Guide | 6-step workflow: eligibility check, AVS application, home assessment, temperament check criteria (pass/fail), trial period rules, final approval conditions |
-| ❓ Week 1 FAQ | Hiding behaviour, not eating, whining at night, toilet accidents, fear response, exploring the flat, washing timing |
-| 🏢 HDB Dog Etiquette | Corridor leashing, lift etiquette, waste pick-up ($1,000 fine), barking management, approved breeds, stray feeding |
-| ⚖️ Singapore Dog Laws | AVS licence, microchipping, leash in public, waste pick-up, rabies, HDB breed rules, dangerous dogs |
-
-#### Climate & Wellness Guides (accordion)
-
-| Guide | Contents |
-|---|---|
-| ☀️ Walk Timing & Heat Safety | Safe walk hours, 60°C pavement test, cooling at home, never leave dog in car |
-| 🌡️ Heatstroke: Symptoms & Emergency | Recognition checklist, 4-step immediate response, 5 named 24-hour Singapore vet clinics with phone numbers |
-| 🦟 Monthly Tick & Flea Prevention | Year-round SG risk, product guide (NexGard, Bravecto, Frontline, Seresto), post-walk tick check protocol |
-| 🧫 Leptospirosis Risk in Singapore | Rat urine transmission, flooding risk, symptom checklist, Lepto-4 vaccine schedule, note that standard C5 does NOT cover Lepto |
-| 🪮 Skin & Coat Health in Humidity | Grooming frequency by coat type (6 coat categories), hot spot prevention, ear care, red flag signs |
-| 🐕 Breed Heat Tolerance Guide | Heat-adapted breeds (SG Special, Basenji, Thai Ridgeback) vs heat-sensitive (brachycephalics, arctic double-coats) with specific care tips |
-| 🌧️ Wet Season Dog Care | Monsoon calendar (Oct–Jan, Apr–May), paw drying protocol, inter-paw fungal infection prevention, lightning safety |
-
-#### Seasonal Alert Banners
-- **Heat banner** (shown year-round): walk before 9am or after 7pm reminder
-- **Wet season banner** (Oct, Nov, Dec, Jan, Apr, May): Leptospirosis and paw-drying reminder
-
----
-
-### 9. Health Passport & Vet Tracker
-
-A dedicated 🏥 Health tab providing a digital health record for the owner's pet. Data stored in Firestore under `users/{uid}.healthPassport` with localStorage cache.
-
-#### Pet Profile Setup
-- Pet name, species (dog / cat / rabbit), breed, date of birth, gender, colour
-- AVS licence number, microchip ID, AVS licence renewal date
-- Sterilised toggle, annual booster up-to-date toggle
-- Photo upload placeholder (coming soon)
-
-#### Singapore Compliance Checklist (Overview tab)
-- AVS Dog Licence (tick if licence number entered)
-- Microchip Implanted (tick if microchip ID entered)
-- Sterilised (toggleable)
-- Annual Booster Up to Date (toggleable)
-- HDB Window Mesh Fitted (shown only for HDB residents — awareness item)
-
-#### Health Reminders Panel (Overview tab)
-Automatically computed reminder pills:
-- 🔴 Vaccine booster overdue
-- 🟡 Vaccine due within 30 days (shows days remaining)
-- 🔴 / 🟡 AVS licence renewal within 60 days
-- ℹ️ Active medications count
-- 🟡 No heartworm prevention logged (dogs only)
-- 🟡 No tick & flea prevention logged
-
-#### HDB Alert
-Amber banner shown for HDB residents reminding them of the mandatory window mesh requirement.
-
-#### Sections
-
-**Vaccines**
-- Log vaccinations: vaccine type (DHPP, Rabies, Bordetella, Lepto, Canine Influenza, etc.), date given, next due date, clinic, notes
-- Status badge per entry: 🟢 Up to date / 🟡 Due soon / 🔴 Overdue
-- Sorted newest-first
-- Delete entries
-
-**Vet Visits**
-- Log visits: date, clinic, vet name, diagnosis, treatment, notes
-- Expandable cards (tap to reveal full detail)
-- Sorted newest-first
-- Delete entries
-
-**Medications**
-- Log medications: name, dosage, frequency (daily / twice daily / weekly / monthly / as needed), start date, end date
-- Active / Past split view
-- Inline toggle to mark as inactive (moves to Past)
-- Delete entries
-
-**Weight**
-- Log weight entries: kg + date
-- **Recharts AreaChart** with orange gradient (renders when 2+ entries present)
-- Latest weight stat displayed prominently
-- Full history list
-- Inline form (no sheet overlay)
-
-**Symptoms**
-- Multi-select symptom chips (14 predefined options: lethargy, vomiting, diarrhoea, coughing, limping, etc.)
-- Severity picker: Mild / Moderate / Severe
-- Date and notes fields
-- **"Share with Vet"** button — copies formatted health log to clipboard (works per log card and in the sheet)
-- Delete entries
-
----
-
-### 10. User Profile
-- Displays MBTI type, living situation, preferences from onboarding
-- User avatar (initials)
-- **Retake matching quiz** — clears all swipe history and re-triggers the onboarding quiz
-- **Open 30-Day Guide** — launches the OwnerOnboarding overlay
-- **Breed Guide** shortcut — navigates to breed reference from the profile screen
-- Onboarding progress indicator
-- **City Impact Dashboard** (see section 12)
-
----
-
-### 12. Personality Onboarding Quiz `[AI for Good]`
-
-Shown automatically on first launch (no profile saved). Removed the previous bypass that defaulted all users to ENFP/condo.
-
-- 8 questions covering MBTI dimensions, activity level, living space, time available, experience
-- MBTI computed from Q1 (E/I), Q2 (T/F), Q3 (J/P), Q4 (S/N) — then lifestyle profile appended
-- HDB housing note on Q6 explaining breed filtering
-- Animated progress bar, tap-to-select options, slide transitions
-- On completion, profile saved to Firestore + localStorage — quiz never shown again unless "Retake Quiz" is pressed
-
----
-
-### 13. City Impact Dashboard `[Smart Cities]` `[AI for Good]`
-
-An expandable card in the **Profile tab** showing Singapore-level adoption retention data. Gives the circular economy argument a measurable evidence layer.
-
-#### Headline Stats
-- **Total animals matched** across the platform
-- **Retention rate at 90 days** — % of placements still in their home
-- **High-risk flags resolved** — AI interventions that prevented a return
-
-#### Monthly Retention Trend Chart
-- Recharts AreaChart with two series: placements (orange) vs. retained (green)
-- 6-month rolling window showing the retention trajectory
-
-#### Circular Economy Narrative
-- Inline text block connecting adoption retention → fewer strays → less shelter pressure → city cost savings
-- Concrete number: estimated returns avoided
-
-#### Your Contribution
-- Personal check-in count with progress bar
-- Framing: user's data trains the city-level matching model
-
-Tagged: **Smart Cities · AI for Good · NTU Pinnacle Prize**
-
----
-
-### 11. My Pet — Adoption Journey Tracker *(Layer 3 MVP)*
-
-A dedicated **My Pet** tab (🏠) that activates after the owner confirms an adoption. Replaces the old inline check-in widget. Designed around the NTU Pinnacle Prize themes of **AI for Good** and **Smart Cities**.
+A dedicated **🏠 My Pet** tab. Activates after the owner confirms which matched animal they adopted.
 
 #### Adoption Confirmation
-- Owner selects which matched animal they adopted from a card picker
-- Confirms with "I adopted this pet" — records `adoptionDate` in Firestore
-- "Day X of your adoption journey" counter shown from that date
+- Card picker of all liked animals with photo, breed, age, match score
+- "I adopted this pet" button — records `adoptionDate` to Firestore
+- "Day X of your adoption journey" counter shown from confirmation date
+- "Change" link to re-select if needed
 
 #### Retention Risk Score `[AI for Good]`
-- Computes a **0–100 retention risk score** from 5 lightweight check-in signals + owner lifestyle profile
-- Scoring: pet adjustment (32 pts) + routine consistency (24 pts) + owner stress (24 pts) + behaviour concerns (20 pts) + lifestyle modifiers
-- Risk bands: 🟢 Low (<35) · 🟡 Moderate (35–64) · 🔴 High (≥65)
-- Score breakdown panel shows per-signal dot indicators (green/red)
+Computed from 5 check-in signals plus owner lifestyle context from the onboarding quiz:
 
-#### Risk Trend Chart `[AI for Good]`
-- **Recharts LineChart** showing risk score over up to 12 check-ins (oldest → newest)
-- Reference lines at 35 (moderate) and 65 (high) thresholds for visual context
-- Interactive tooltip showing score + band per data point
-- Renders once 2+ check-ins are logged
+| Signal | Max risk contribution |
+|---|---|
+| Pet adjustment (1–5, inverted) | 32 pts |
+| Routine consistency (1–5, inverted) | 24 pts |
+| Owner stress (1–5) | 24 pts |
+| Behaviour concerns (1–5) | 20 pts |
+| Lifestyle modifiers (time available, experience, energy mismatch) | up to +24 pts |
 
-#### AI Recommendations `[AI for Good]`
-Contextual action cards generated from the latest check-in signals. Up to 3 shown at a time. Examples:
-- 🏠 *Create a decompression zone* — triggered when pet adjustment ≤ 2
-- 🕐 *Lock in a daily rhythm* — triggered when routine consistency ≤ 2
-- 👥 *Connect with local owners* — triggered when owner stress ≥ 4 *(Smart Cities — links to Community tab)*
-- 🎓 *Book a professional trainer* — triggered when behaviour concerns ≥ 3
-- 🗺️ *Find a nearby dog run* — triggered on energy mismatch *(Smart Cities — links to Map tab)*
-- 📋 *Complete your 30-Day Guide* — triggered for first-timers with elevated risk
-- 🌟 *You're doing great* — shown when risk is low (positive reinforcement)
-
-Each recommendation is tagged **AI for Good** or **Smart Cities** with a visible badge.
+Risk bands: 🟢 **Low** (<35) · 🟡 **Moderate** (35–64) · 🔴 **High** (≥65)
 
 #### High-Risk Flag Banner `[AI for Good]`
-- Shown when `latestRiskScore >= 65`
-- Red banner with 🚨 icon: *"This placement may need support — consider reaching out to your shelter"*
-- Labelled **Flagged for follow-up** — makes the AI intervention concrete and actionable, not just a number
+- Appears when risk score ≥ 65
+- 🚨 Red banner: *"This placement may need support — consider reaching out to your shelter"*
+- Labelled **Flagged for follow-up** — makes the AI intervention concrete, not just a number
 
-#### Polished Check-In Form `[AI for Good]`
-- Collapsible — auto-opens for first check-in, collapsed after
-- **Tap-button scales** replace all `<select>` dropdowns (1–5 rating pills per signal)
+#### Risk Trend Chart `[AI for Good]`
+- Recharts LineChart showing risk score over up to 12 check-ins (oldest → newest)
+- Reference lines at 35 (moderate) and 65 (high) thresholds
+- Interactive tooltip per data point
+- Appears after 2+ check-ins are logged
+
+#### Score Breakdown Panel
+- 4 signal dot indicators (🟢 / 🔴) for pet adjustment, routine, stress, behaviour
+- Shows last logged value per signal
+
+#### AI Recommendations `[AI for Good]`
+Up to 3 contextual cards surfaced from the latest check-in. Each tagged `AI for Good` or `Smart Cities`:
+
+| Trigger | Recommendation |
+|---|---|
+| Pet adjustment ≤ 2 | 🏠 Create a decompression zone |
+| Routine consistency ≤ 2 | 🕐 Lock in a daily rhythm |
+| Owner stress ≥ 4 | 👥 Connect with local owners *(Smart Cities)* |
+| Behaviour concerns ≥ 3 | 🎓 Book a professional trainer |
+| Energy mismatch (homebody + high-energy pet) | 🗺️ Find a nearby dog run *(Smart Cities)* |
+| First-timer + risk ≥ 45 | 📋 Complete your 30-Day Guide tasks |
+| Risk < 35 + no other triggers | 🌟 You're doing great — positive reinforcement |
+
+#### Check-In Form `[AI for Good]`
+- Collapsible — auto-opens for first check-in, collapsed after that
+- **Tap-button 1–5 scales** (no dropdowns — optimised for mobile)
 - 3-option energy demand picker (Low / Medium / High)
 - Optional notes textarea
-- Saves to Firestore, triggers risk recalculation
+- On submit: risk score recalculated, Firestore + localStorage updated
 
-#### Impact Panel `[Smart Cities]`
-- Aggregate stats panel showing city-level adoption retention data
-- Counter increments with each personal check-in logged
-- **87% still home at 90 days** retention signal
-- Narrative: *"Every check-in strengthens Singapore's adoption retention model"*
-- Explicit **Circular Adoption Economy** framing (fewer returns = fewer strays = less shelter pressure)
+#### Impact Footer `[Smart Cities]`
+- Mini stats panel: placements tracked, 87% retention at 90 days, high-risk flags resolved
+- Circular economy framing: *"Every check-in strengthens Singapore's adoption retention model"*
+
+---
+
+### 5. City Impact Dashboard `[Smart Cities]` `[AI for Good]`
+
+Expandable card in the **👤 Profile tab**. Gives the sustainability argument a measurable evidence layer.
+
+- **Headline stats** — total animals matched, 90-day retention rate, high-risk flags resolved
+- **Monthly retention trend chart** — Recharts AreaChart, placements (orange) vs. retained (green), 6-month rolling window
+- **Circular economy narrative** — adoption retention → fewer returns → fewer strays → less shelter pressure, with estimated returns avoided
+- **Your contribution** — personal check-in progress bar, framing that user data improves future city-level matching
+- Labelled: *Smart Cities · Circular Adoption Economy · NTU Pinnacle Prize 2026*
+
+---
+
+### 6. Breed Guide
+
+- Comprehensive reference for Singapore-relevant dog breeds
+- Each card: temperament, energy level, grooming needs, exercise requirements, HDB eligibility
+- **HDB Approved** / **Not HDB Approved** badges
+- Full detail modal with personality traits and care notes
+- Accessible from the Guide tab and via shortcut in Profile
+
+---
+
+### 7. Community `[Smart Cities]`
+
+- Join and leave community groups — persists to Firestore
+- Create text posts within groups
+- Reply threads on each post
+- Groups: MBTI-themed spaces (e.g. INTJ Owners, ENFP Pack) + Singapore-specific (Singapore Specials, HDB Dog Owners, Cat Welfare)
+
+---
+
+### 8. Nearby Pet-Friendly Places (Map) `[Smart Cities]`
+
+- Leaflet map with curated Singapore pet-friendly spots
+- Categories: dog runs, parks, cafés, vets, grooming, boarding
+- Real locations: West Coast Park, East Coast Park, MacRitchie, Bishan-AMK dog run, etc.
+
+---
+
+### 9. 30-Day New Owner Guide `[AI for Good]`
+
+Full-screen guided checklist overlay, accessible from Profile. Persists completed tasks to Firestore.
+
+**4 weeks · 30+ tasks** covering:
+- Week 1: AVS licence, microchip transfer, leash law ($200 fine), home setup
+- Week 2: First vet visit, vaccination schedule, flea/tick/heartworm prevention
+- Week 3: Basic obedience, leash manners, socialisation
+- Week 4: Routine, dog parks, insurance, advanced socialisation
+
+**Task features:** expandable detail · legal badge · SGD cost badge · Firestore-synced checkboxes · progress bar
+
+**Built-in guides:** First Vet Visit · Project ADORE (HDB compliance) · Week 1 FAQ · HDB Etiquette · Singapore Dog Laws · Heat Safety · Heatstroke Emergency · Tick & Flea Prevention · Leptospirosis · Skin & Coat Health · Breed Heat Tolerance · Wet Season Care
+
+**Seasonal banners:** Heat reminder (year-round) · Wet season alert (Oct, Nov, Dec, Jan, Apr, May)
+
+---
+
+### 10. Health Passport & Vet Tracker `[Smart Cities]`
+
+Dedicated 🏥 **Health tab** — digital health record for the owner's adopted pet.
+
+**Pet Profile:** name, species, breed, DOB, gender, colour, AVS licence number, microchip ID, licence renewal date, sterilised toggle, booster toggle
+
+**Singapore Compliance Checklist:** AVS licence · microchip · sterilised · annual booster · HDB window mesh (HDB residents only)
+
+**Auto-computed reminders:** vaccine overdue 🔴 · vaccine due soon 🟡 · AVS licence renewal 🔴/🟡 · active medications count · no heartworm prevention logged · no tick/flea prevention logged
+
+**Sections:** Vaccines · Vet Visits · Medications (active/past split) · Weight (Recharts AreaChart, 2+ entries) · Symptoms (multi-select chips + severity + "Share with Vet" clipboard copy)
+
+---
+
+### 11. User Profile
+
+- MBTI type hero card with letter breakdown
+- Lifestyle summary: activity level, living space, daily time, experience
+- **City Impact Dashboard** (section 5 above)
+- **Breed Guide** shortcut card
+- **30-Day Guide** progress card with live progress bar
+- Retake Quiz button (resets all data and re-runs onboarding)
+- Log out (Firebase Auth, no-op in guest mode)
+
+---
+
+### 12. Authentication (Optional)
+
+- Email/password signup + Google login via Firebase Auth
+- Persistent sessions across reloads
+- Per-user scoped data in Firestore (`users/{uid}`)
+- **Graceful offline fallback** — if no Firebase config is present, app runs entirely in localStorage guest mode. No white screen, no crash.
 
 ---
 
@@ -331,17 +267,24 @@ Each recommendation is tagged **AI for Good** or **Smart Cities** with a visible
 ### Firestore Document (`users/{uid}`)
 ```
 {
-  profile:             { mbti, livingSpace, activityLevel, … },
-  likedAnimals:        [{ id, name, species, score, … }],
-  passedIds:           [id, …],
-  onboardingProgress:  { completedTasks: [taskId, …], startedAt: ISO },
-  joinedCommunities:   [communityId, …],
+  profile: {
+    mbti, livingSpace, activityLevel, timeAvailable, experience
+  },
+  likedAnimals:       [{ id, name, species, breed, score, … }],
+  passedIds:          [id, …],
+  onboardingProgress: { completedTasks: [taskId, …] },
+  joinedCommunities:  [communityId, …],
   postAdoptionData: {
     adoptedAnimalId: string,
     adoptionDate:    ISO string,
-    latestRiskScore: number,
-    latestRiskBand:  string,
-    checkIns: [{ id, createdAt, petAdjustment, routineConsistency, ownerStress, behaviorConcerns, petEnergyDemand, notes }],
+    latestRiskScore: number (0–100),
+    latestRiskBand:  "Low risk" | "Moderate risk" | "High risk",
+    checkIns: [{
+      id, createdAt, adoptedAnimalId,
+      petAdjustment (1–5), routineConsistency (1–5),
+      ownerStress (1–5), behaviorConcerns (1–5),
+      petEnergyDemand ("low"|"medium"|"high"), notes
+    }]   // capped at 12 entries
   },
   healthPassport: {
     petName, petSpecies, petBreed, dateOfBirth, gender, colour,
@@ -356,13 +299,14 @@ Each recommendation is tagged **AI for Good** or **Smart Cities** with a visible
 }
 ```
 
-### localStorage Cache Keys (per user)
+### localStorage Cache Keys (per user, scoped by uid or "guest")
 | Key | Contents |
 |---|---|
-| `pawmatch_{uid}_profile` | User onboarding profile |
+| `pawmatch_{uid}_profile` | Onboarding quiz profile |
 | `pawmatch_{uid}_liked` | Liked animals array |
 | `pawmatch_{uid}_passed` | Passed animal IDs |
 | `pawmatch_{uid}_health` | Health passport object |
+| `pawmatch_{uid}_post_adoption` | Post-adoption data + check-ins |
 
 ---
 
@@ -370,32 +314,31 @@ Each recommendation is tagged **AI for Good** or **Smart Cities** with a visible
 
 | Feature | Detail |
 |---|---|
-| AVS licence | Required within 30 days of ownership; $15/yr (sterilised) · $90/yr (unsterilised) |
-| Leash law | Required in all public areas; **from $200 fine** — displayed upfront in Week 1 |
-| HDB breed filter | Only 35 AVS-approved small breeds shown to HDB residents in Discover |
+| AVS dog licence | Required within 30 days; $15/yr sterilised · $90/yr unsterilised |
+| Leash law | Required in all public areas; **$200 fine** — shown upfront in Week 1 |
+| HDB breed filter | Only AVS-approved small breeds shown to HDB residents in Discover |
 | Microchip tracking | Logged in Health Passport, checked in compliance list |
-| Waste pick-up | $1,000 fine — noted in HDB etiquette and legal guides |
+| Waste pick-up | **$1,000 fine** — noted in HDB etiquette and legal guides |
 | Project ADORE | Full 6-step workflow for existing HDB owners with non-approved breeds |
-| Leptospirosis | Dedicated guide + vaccine schedule given SG's rat/flood risk |
-| Heat safety | Walk timing reminders, heatstroke guide, 24hr vet clinic list |
-| Wet season | Seasonal alert banner + dedicated paw-care guide |
+| Leptospirosis | Dedicated guide + vaccine schedule; note that standard C5 does NOT cover Lepto |
+| Heat safety | Walk timing reminders (before 9am / after 7pm), heatstroke guide, 24hr vet list |
+| Wet season | Seasonal alert banner + dedicated paw-care and fungal infection guide |
 
 ---
 
 ## Running Locally
 
 ```bash
+git clone https://github.com/9irija/PawMatch-Pinnacle.git
+cd PawMatch-Pinnacle
 npm install
 npm run dev
 ```
 
-### Current local version behavior
-- App opens directly to the main home experience in **guest mode** (no login gate)
-- No onboarding is required to start swiping in local guest flow
-- To view Layer 3 UI: swipe right on at least one animal → go to **My Pet** tab → confirm adoption → log check-ins
-- Default dev URL is usually `http://localhost:5173`
+Open **http://localhost:5173/PawMatch-Pinnacle/** (or the port shown in your terminal).
 
-Firebase `.env` config is still required for authenticated and Firestore-backed flows:
+The app runs in **guest mode** with no Firebase config — all data saved to localStorage. To enable Firebase (auth + cross-device sync), create a `.env` file in the project root:
+
 ```
 VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
@@ -405,6 +348,21 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 ```
 
+---
+
+## Deploying to GitHub Pages
+
 ```bash
-npm run build   # production build to /dist
+npm run build
+npx gh-pages -d dist -r https://github.com/9irija/PawMatch-Pinnacle.git
 ```
+
+Then on GitHub: **Settings → Pages → Branch: gh-pages → Save**
+
+---
+
+## Repository
+
+- **Source (master branch):** https://github.com/9irija/PawMatch-Pinnacle
+- **Live demo:** https://9irija.github.io/PawMatch-Pinnacle/
+- **Original upstream:** https://github.com/Yichen930/PawMatch
