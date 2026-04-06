@@ -166,7 +166,7 @@ export default function App() {
 
   // ── Sync state → Firestore + cache (skip during initial load) ───────────
   useEffect(() => {
-    if (dataLoading) return;
+    if (dataLoading || !userProfile) return; // never overwrite cache/Firestore with null
     const uid = currentUser?.uid ?? GUEST_UID;
     if (currentUser) saveProfile(uid, userProfile).catch(console.error);
     cacheSave(uid, 'profile', userProfile);
@@ -234,6 +234,8 @@ export default function App() {
       } catch (err) {
         console.error('Failed to clear Firestore data:', err);
       }
+    } else {
+      cacheClear(GUEST_UID); // explicitly clear guest cache so quiz re-shows
     }
     setUserProfile(null);
     setLikedAnimals([]);
