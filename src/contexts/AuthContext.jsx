@@ -21,6 +21,10 @@ export function AuthProvider({ children }) {
   const [authLoading, setAuthLoading]  = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setAuthLoading(false); // no Firebase → stay as guest
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setAuthLoading(false);
@@ -29,23 +33,26 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function signup(email, password, displayName) {
+    if (!auth) throw new Error('Firebase not configured.');
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(credential.user, { displayName });
-    // Force refresh so currentUser.displayName is set immediately
     setCurrentUser({ ...credential.user, displayName });
     return credential;
   }
 
   function login(email, password) {
+    if (!auth) throw new Error('Firebase not configured.');
     return signInWithEmailAndPassword(auth, email, password);
   }
 
   function loginWithGoogle() {
+    if (!auth) throw new Error('Firebase not configured.');
     const provider = new GoogleAuthProvider();
     return signInWithPopup(auth, provider);
   }
 
   function logout() {
+    if (!auth) return;
     return signOut(auth);
   }
 

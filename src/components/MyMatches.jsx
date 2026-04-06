@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import AnimalDetailModal from './AnimalDetailModal.jsx';
-import PostAdoptionCheckin from './PostAdoptionCheckin.jsx';
 
 function speciesEmoji(species) {
   if (species === 'dog')    return '🐕';
@@ -9,7 +8,7 @@ function speciesEmoji(species) {
   return '🐾';
 }
 
-export default function MyMatches({ likedAnimals, userProfile, postAdoptionData, onPostAdoptionUpdate, onViewDiscover }) {
+export default function MyMatches({ likedAnimals, onViewDiscover }) {
   const [selectedAnimal, setSelectedAnimal] = useState(null);
 
   if (likedAnimals.length === 0) {
@@ -33,12 +32,6 @@ export default function MyMatches({ likedAnimals, userProfile, postAdoptionData,
   return (
     <>
       <div className="h-full flex flex-col">
-        <PostAdoptionCheckin
-          likedAnimals={likedAnimals}
-          userProfile={userProfile}
-          postAdoptionData={postAdoptionData}
-          onUpdate={onPostAdoptionUpdate}
-        />
         <div className="px-5 pt-2 pb-3">
           <p className="text-gray-400 text-sm font-semibold">
             {likedAnimals.length} {likedAnimals.length === 1 ? 'animal' : 'animals'} you loved ❤️

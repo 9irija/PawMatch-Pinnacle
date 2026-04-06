@@ -227,18 +227,102 @@ Amber banner shown for HDB residents reminding them of the mandatory window mesh
 ### 10. User Profile
 - Displays MBTI type, living situation, preferences from onboarding
 - User avatar (initials)
-- **Retake matching quiz** — clears all swipe history and restarts onboarding
+- **Retake matching quiz** — clears all swipe history and re-triggers the onboarding quiz
 - **Open 30-Day Guide** — launches the OwnerOnboarding overlay
+- **Breed Guide** shortcut — navigates to breed reference from the profile screen
 - Onboarding progress indicator
+- **City Impact Dashboard** (see section 12)
 
 ---
 
-### 11. Layer 3 MVP — Post-Adoption Risk Signal
-- Lives in the **My Matches** tab as a top check-in module
-- Captures lightweight post-adoption check-ins (e.g. behaviour, adjustment, routine indicators)
-- Computes an early retention-risk signal to flag potentially fragile placements
-- Helps owners intervene earlier before a mismatch becomes a return risk
-- Persists check-in state with the rest of the user app data
+### 12. Personality Onboarding Quiz `[AI for Good]`
+
+Shown automatically on first launch (no profile saved). Removed the previous bypass that defaulted all users to ENFP/condo.
+
+- 8 questions covering MBTI dimensions, activity level, living space, time available, experience
+- MBTI computed from Q1 (E/I), Q2 (T/F), Q3 (J/P), Q4 (S/N) — then lifestyle profile appended
+- HDB housing note on Q6 explaining breed filtering
+- Animated progress bar, tap-to-select options, slide transitions
+- On completion, profile saved to Firestore + localStorage — quiz never shown again unless "Retake Quiz" is pressed
+
+---
+
+### 13. City Impact Dashboard `[Smart Cities]` `[AI for Good]`
+
+An expandable card in the **Profile tab** showing Singapore-level adoption retention data. Gives the circular economy argument a measurable evidence layer.
+
+#### Headline Stats
+- **Total animals matched** across the platform
+- **Retention rate at 90 days** — % of placements still in their home
+- **High-risk flags resolved** — AI interventions that prevented a return
+
+#### Monthly Retention Trend Chart
+- Recharts AreaChart with two series: placements (orange) vs. retained (green)
+- 6-month rolling window showing the retention trajectory
+
+#### Circular Economy Narrative
+- Inline text block connecting adoption retention → fewer strays → less shelter pressure → city cost savings
+- Concrete number: estimated returns avoided
+
+#### Your Contribution
+- Personal check-in count with progress bar
+- Framing: user's data trains the city-level matching model
+
+Tagged: **Smart Cities · AI for Good · NTU Pinnacle Prize**
+
+---
+
+### 11. My Pet — Adoption Journey Tracker *(Layer 3 MVP)*
+
+A dedicated **My Pet** tab (🏠) that activates after the owner confirms an adoption. Replaces the old inline check-in widget. Designed around the NTU Pinnacle Prize themes of **AI for Good** and **Smart Cities**.
+
+#### Adoption Confirmation
+- Owner selects which matched animal they adopted from a card picker
+- Confirms with "I adopted this pet" — records `adoptionDate` in Firestore
+- "Day X of your adoption journey" counter shown from that date
+
+#### Retention Risk Score `[AI for Good]`
+- Computes a **0–100 retention risk score** from 5 lightweight check-in signals + owner lifestyle profile
+- Scoring: pet adjustment (32 pts) + routine consistency (24 pts) + owner stress (24 pts) + behaviour concerns (20 pts) + lifestyle modifiers
+- Risk bands: 🟢 Low (<35) · 🟡 Moderate (35–64) · 🔴 High (≥65)
+- Score breakdown panel shows per-signal dot indicators (green/red)
+
+#### Risk Trend Chart `[AI for Good]`
+- **Recharts LineChart** showing risk score over up to 12 check-ins (oldest → newest)
+- Reference lines at 35 (moderate) and 65 (high) thresholds for visual context
+- Interactive tooltip showing score + band per data point
+- Renders once 2+ check-ins are logged
+
+#### AI Recommendations `[AI for Good]`
+Contextual action cards generated from the latest check-in signals. Up to 3 shown at a time. Examples:
+- 🏠 *Create a decompression zone* — triggered when pet adjustment ≤ 2
+- 🕐 *Lock in a daily rhythm* — triggered when routine consistency ≤ 2
+- 👥 *Connect with local owners* — triggered when owner stress ≥ 4 *(Smart Cities — links to Community tab)*
+- 🎓 *Book a professional trainer* — triggered when behaviour concerns ≥ 3
+- 🗺️ *Find a nearby dog run* — triggered on energy mismatch *(Smart Cities — links to Map tab)*
+- 📋 *Complete your 30-Day Guide* — triggered for first-timers with elevated risk
+- 🌟 *You're doing great* — shown when risk is low (positive reinforcement)
+
+Each recommendation is tagged **AI for Good** or **Smart Cities** with a visible badge.
+
+#### High-Risk Flag Banner `[AI for Good]`
+- Shown when `latestRiskScore >= 65`
+- Red banner with 🚨 icon: *"This placement may need support — consider reaching out to your shelter"*
+- Labelled **Flagged for follow-up** — makes the AI intervention concrete and actionable, not just a number
+
+#### Polished Check-In Form `[AI for Good]`
+- Collapsible — auto-opens for first check-in, collapsed after
+- **Tap-button scales** replace all `<select>` dropdowns (1–5 rating pills per signal)
+- 3-option energy demand picker (Low / Medium / High)
+- Optional notes textarea
+- Saves to Firestore, triggers risk recalculation
+
+#### Impact Panel `[Smart Cities]`
+- Aggregate stats panel showing city-level adoption retention data
+- Counter increments with each personal check-in logged
+- **87% still home at 90 days** retention signal
+- Narrative: *"Every check-in strengthens Singapore's adoption retention model"*
+- Explicit **Circular Adoption Economy** framing (fewer returns = fewer strays = less shelter pressure)
 
 ---
 
@@ -252,6 +336,13 @@ Amber banner shown for HDB residents reminding them of the mandatory window mesh
   passedIds:           [id, …],
   onboardingProgress:  { completedTasks: [taskId, …], startedAt: ISO },
   joinedCommunities:   [communityId, …],
+  postAdoptionData: {
+    adoptedAnimalId: string,
+    adoptionDate:    ISO string,
+    latestRiskScore: number,
+    latestRiskBand:  string,
+    checkIns: [{ id, createdAt, petAdjustment, routineConsistency, ownerStress, behaviorConcerns, petEnergyDemand, notes }],
+  },
   healthPassport: {
     petName, petSpecies, petBreed, dateOfBirth, gender, colour,
     avsLicenceNumber, microchipId, avsLicenceRenewalDate,
@@ -301,7 +392,7 @@ npm run dev
 ### Current local version behavior
 - App opens directly to the main home experience in **guest mode** (no login gate)
 - No onboarding is required to start swiping in local guest flow
-- To view Layer 3 UI, go to **My Matches** after liking at least one animal
+- To view Layer 3 UI: swipe right on at least one animal → go to **My Pet** tab → confirm adoption → log check-ins
 - Default dev URL is usually `http://localhost:5173`
 
 Firebase `.env` config is still required for authenticated and Firestore-backed flows:

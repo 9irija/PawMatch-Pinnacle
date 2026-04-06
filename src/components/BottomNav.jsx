@@ -1,8 +1,8 @@
 export default function BottomNav({ activeTab, onTabChange }) {
   const tabs = [
-    { id: 'discover', icon: '🐾', label: 'Discover' },
-    { id: 'matches',  icon: '❤️',  label: 'Matches' },
-    { id: 'guide',     icon: '📖', label: 'Guide' },
+    { id: 'discover',  icon: '🐾', label: 'Discover' },
+    { id: 'matches',   icon: '❤️',  label: 'Matches' },
+    { id: 'mypet',     icon: '🏠', label: 'My Pet' },
     { id: 'community', icon: '👥', label: 'Community' },
     { id: 'map',       icon: '🗺️', label: 'Map' },
     { id: 'health',    icon: '🏥', label: 'Health' },

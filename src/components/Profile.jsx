@@ -1,5 +1,6 @@
 import { getMBTILabel } from '../utils/matchingAlgorithm.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import ImpactDashboard from './ImpactDashboard.jsx';
 
 const activityLabels = {
   very_active:       { label: 'Very Active',        emoji: '🏃', color: '#FF6B35' },
@@ -29,7 +30,7 @@ const expLabels = {
   very_experienced: { label: 'Very Experienced',    emoji: '🌳', color: '#FF6B35' },
 };
 
-export default function Profile({ userProfile, onRetakeQuiz, onOpenGuide, onboardingProgress }) {
+export default function Profile({ userProfile, onRetakeQuiz, onOpenGuide, onViewBreedGuide, onboardingProgress, postAdoptionData }) {
   const { logout, currentUser } = useAuth();
   const mbtiLabel = getMBTILabel(userProfile.mbti);
 
@@ -143,6 +144,28 @@ export default function Profile({ userProfile, onRetakeQuiz, onOpenGuide, onboar
           </button>
         );
       })()}
+
+      {/* Impact Dashboard */}
+      <ImpactDashboard postAdoptionData={postAdoptionData} />
+
+      {/* Breed Guide */}
+      {onViewBreedGuide && (
+        <button
+          onClick={onViewBreedGuide}
+          className="w-full bg-white border-2 border-gray-200 rounded-3xl p-5 mb-4 text-left shadow-sm hover:bg-gray-50 active:scale-95 transition-all duration-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">📖</span>
+                <span className="font-display font-bold text-gray-900">Breed Guide</span>
+              </div>
+              <p className="text-xs text-gray-400 font-semibold">Singapore's dogs — HDB &amp; beyond</p>
+            </div>
+            <span className="text-gray-400 text-xl">›</span>
+          </div>
+        </button>
+      )}
 
       {/* Retake */}
       <button

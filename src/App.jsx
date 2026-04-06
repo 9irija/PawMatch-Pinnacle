@@ -9,9 +9,11 @@ import BottomNav from './components/BottomNav.jsx';
 import BreedGuide from './components/BreedGuide.jsx';
 import MatchModal from './components/MatchModal.jsx';
 import OwnerOnboarding from './components/OwnerOnboarding.jsx';
+import Onboarding from './components/Onboarding.jsx';
 import Community from './components/Community.jsx';
 import PetMap from './components/PetMap.jsx';
 import HealthPassport from './components/HealthPassport.jsx';
+import MyPet from './components/MyPet.jsx';
 import animalsData from './data/animalsData.js';
 import { sortAnimalsByScore, computeMatchScore } from './utils/matchingAlgorithm.js';
 
@@ -46,8 +48,9 @@ function cacheClear(uid) {
   );
 }
 
-// ── Firestore helpers ────────────────────────────────────────────────────────
+// ── Firestore helpers (all no-op when db is null) ───────────────────────────
 async function loadUserData(uid) {
+  if (!db) return { profile: null, likedAnimals: [], passedIds: [], onboardingProgress: { completedTasks: [] }, joinedCommunities: [], healthPassport: null, postAdoptionData: null };
   const snap = await getDoc(doc(db, 'users', uid));
   if (!snap.exists()) {
     return {
@@ -73,18 +76,22 @@ async function loadUserData(uid) {
 }
 
 async function saveProfile(uid, profile) {
+  if (!db) return;
   await setDoc(doc(db, 'users', uid), { profile }, { merge: true });
 }
 
 async function saveLiked(uid, likedAnimals) {
+  if (!db) return;
   await setDoc(doc(db, 'users', uid), { likedAnimals }, { merge: true });
 }
 
 async function savePassed(uid, passedIds) {
+  if (!db) return;
   await setDoc(doc(db, 'users', uid), { passedIds }, { merge: true });
 }
 
 async function clearUserData(uid) {
+  if (!db) return;
   await setDoc(
     doc(db, 'users', uid),
     { profile: deleteField(), likedAnimals: [], passedIds: [], postAdoptionData: deleteField() },
@@ -93,6 +100,7 @@ async function clearUserData(uid) {
 }
 
 async function saveHealthPassport(uid, hp) {
+  if (!db) return;
   await setDoc(doc(db, 'users', uid), { healthPassport: hp }, { merge: true });
 }
 
@@ -102,7 +110,7 @@ export default function App() {
   const { currentUser } = useAuth();
   const appUser = currentUser ?? { uid: GUEST_UID, displayName: 'Guest', email: 'guest@pawmatch.local' };
 
-  const [userProfile,   setUserProfile]   = useState(DEFAULT_PROFILE);
+  const [userProfile,   setUserProfile]   = useState(null);
   const [likedAnimals,  setLikedAnimals]  = useState([]);
   const [passedIds,     setPassedIds]     = useState([]);
   const [activeTab,          setActiveTab]          = useState('discover');
@@ -117,7 +125,7 @@ export default function App() {
   // ── Load user data from Firestore on login ───────────────────────────────
   useEffect(() => {
     if (!currentUser) {
-      setUserProfile(cacheLoad(GUEST_UID, 'profile', DEFAULT_PROFILE));
+      setUserProfile(cacheLoad(GUEST_UID, 'profile', null));
       setLikedAnimals(cacheLoad(GUEST_UID, 'liked', []));
       setPassedIds(cacheLoad(GUEST_UID, 'passed', []));
       setHealthPassport(cacheLoad(GUEST_UID, 'health', null));
@@ -179,7 +187,7 @@ export default function App() {
   }, [passedIds]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!currentUser || dataLoading) return;
+    if (!currentUser || !db || dataLoading) return;
     setDoc(doc(db, 'users', currentUser.uid), { joinedCommunities }, { merge: true }).catch(console.error);
   }, [joinedCommunities]);  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -193,7 +201,7 @@ export default function App() {
   useEffect(() => {
     if (dataLoading) return;
     const uid = currentUser?.uid ?? GUEST_UID;
-    if (currentUser) setDoc(doc(db, 'users', uid), { postAdoptionData }, { merge: true }).catch(console.error);
+    if (currentUser && db) setDoc(doc(db, 'users', uid), { postAdoptionData }, { merge: true }).catch(console.error);
     cacheSave(uid, 'post_adoption', postAdoptionData);
   }, [postAdoptionData]);  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -227,11 +235,18 @@ export default function App() {
         console.error('Failed to clear Firestore data:', err);
       }
     }
-    setUserProfile(DEFAULT_PROFILE);
+    setUserProfile(null);
     setLikedAnimals([]);
     setPassedIds([]);
     setMatchModal(null);
     setActiveTab('discover');
+  };
+
+  const handleQuizComplete = (profile) => {
+    setUserProfile(profile);
+    const uid = currentUser?.uid ?? GUEST_UID;
+    if (currentUser) saveProfile(uid, profile).catch(console.error);
+    cacheSave(uid, 'profile', profile);
   };
 
   // ── Avatar letter ─────────────────────────────────────────────────────────
@@ -249,6 +264,11 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  // ── Quiz gate — show onboarding if no profile yet ─────────────────────────
+  if (!userProfile) {
+    return <Onboarding onComplete={handleQuizComplete} />;
   }
 
   // ── Main app ──────────────────────────────────────────────────────────────
@@ -310,6 +330,12 @@ export default function App() {
               <p className="text-xs text-gray-400 font-semibold">Singapore's dogs — HDB &amp; beyond</p>
             </div>
           )}
+          {activeTab === 'mypet' && (
+            <div>
+              <h2 className="font-display text-lg font-bold text-gray-900">My Pet</h2>
+              <p className="text-xs text-gray-400 font-semibold">Track your adoption journey</p>
+            </div>
+          )}
           {activeTab === 'community' && (
             <div>
               <h2 className="font-display text-lg font-bold text-gray-900">Community</h2>
@@ -342,10 +368,15 @@ export default function App() {
           {activeTab === 'matches' && (
             <MyMatches
               likedAnimals={likedAnimals}
+              onViewDiscover={() => setActiveTab('discover')}
+            />
+          )}
+          {activeTab === 'mypet' && (
+            <MyPet
+              likedAnimals={likedAnimals}
               userProfile={userProfile}
               postAdoptionData={postAdoptionData}
-              onPostAdoptionUpdate={setPostAdoptionData}
-              onViewDiscover={() => setActiveTab('discover')}
+              onUpdate={setPostAdoptionData}
             />
           )}
           {activeTab === 'profile' && (
@@ -353,7 +384,9 @@ export default function App() {
               userProfile={userProfile}
               onRetakeQuiz={handleRetakeQuiz}
               onOpenGuide={() => setShowOnboarding(true)}
+              onViewBreedGuide={() => setActiveTab('guide')}
               onboardingProgress={onboardingProgress}
+              postAdoptionData={postAdoptionData}
             />
           )}
           {activeTab === 'guide' && <BreedGuide />}
