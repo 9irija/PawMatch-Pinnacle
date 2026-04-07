@@ -18,13 +18,7 @@ import animalsData from './data/animalsData.js';
 import { sortAnimalsByScore, computeMatchScore } from './utils/matchingAlgorithm.js';
 
 const GUEST_UID = 'guest';
-const DEFAULT_PROFILE = {
-  mbti: 'ENFP',
-  livingSpace: 'condo',
-  activityLevel: 'moderately_active',
-  timeAvailable: '3_4_hrs',
-  experience: 'first_timer',
-};
+const PROFILE_VERSION = 2; // bump this to invalidate stale cached profiles
 
 // ── Local cache helpers (scoped per user) ────────────────────────────────────
 function cacheLoad(uid, key, fallback) {
@@ -125,7 +119,8 @@ export default function App() {
   // ── Load user data from Firestore on login ───────────────────────────────
   useEffect(() => {
     if (!currentUser) {
-      setUserProfile(cacheLoad(GUEST_UID, 'profile', null));
+      const cached = cacheLoad(GUEST_UID, 'profile', null);
+      setUserProfile(cached?._v === PROFILE_VERSION ? cached : null);
       setLikedAnimals(cacheLoad(GUEST_UID, 'liked', []));
       setPassedIds(cacheLoad(GUEST_UID, 'passed', []));
       setHealthPassport(cacheLoad(GUEST_UID, 'health', null));
@@ -138,7 +133,8 @@ export default function App() {
     const uid = currentUser.uid;
 
     // Seed from local cache for instant render
-    setUserProfile(cacheLoad(uid, 'profile', null));
+    const cachedProfile = cacheLoad(uid, 'profile', null);
+    setUserProfile(cachedProfile?._v === PROFILE_VERSION ? cachedProfile : null);
     setLikedAnimals(cacheLoad(uid, 'liked', []));
     setPassedIds(cacheLoad(uid, 'passed', []));
     setHealthPassport(cacheLoad(uid, 'health', null));
@@ -147,7 +143,7 @@ export default function App() {
     setDataLoading(true);
     loadUserData(uid)
       .then(({ profile, likedAnimals, passedIds, onboardingProgress, joinedCommunities, healthPassport, postAdoptionData }) => {
-        setUserProfile(profile);
+        setUserProfile(profile?._v === PROFILE_VERSION ? profile : null);
         setLikedAnimals(likedAnimals);
         setPassedIds(passedIds);
         setOnboardingProgress(onboardingProgress);
@@ -245,10 +241,11 @@ export default function App() {
   };
 
   const handleQuizComplete = (profile) => {
-    setUserProfile(profile);
+    const stamped = { ...profile, _v: PROFILE_VERSION };
+    setUserProfile(stamped);
     const uid = currentUser?.uid ?? GUEST_UID;
-    if (currentUser) saveProfile(uid, profile).catch(console.error);
-    cacheSave(uid, 'profile', profile);
+    if (currentUser) saveProfile(uid, stamped).catch(console.error);
+    cacheSave(uid, 'profile', stamped);
   };
 
   // ── Avatar letter ─────────────────────────────────────────────────────────
